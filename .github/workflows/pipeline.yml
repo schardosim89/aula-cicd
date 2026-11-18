@@ -1,0 +1,52 @@
+name: Aula CI/CD - Arquivos de Texto
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI - Validar arquivos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar se o arquivo existe
+        run: test -f arquivos/mensagem.txt
+
+      - name: Validar conteudo
+        run: |
+          if grep -q "Status: APROVADO" arquivos/mensagem.txt; then
+            echo "Teste passou!"
+          else
+            echo "ERRO: texto obrigatorio nao encontrado!"
+            exit 1
+          fi
+
+  cd:
+    name: CD - Preparar entrega
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar codigo do repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar arquivos
+        run: |
+          mkdir -p entrega
+          cp arquivos/*.txt entrega/
+          echo "Entrega gerada com sucesso!" > entrega/resultado.txt
+
+      - name: Publicar artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacote-entrega
+          path: entrega/
